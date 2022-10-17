@@ -36,4 +36,14 @@ Mutation: {
 
       return { token, user };
     },
-    saveBook
+    saveBook: async (parent, args, context) => {
+        if (context.user) {
+            const updatedUser = await User.findOneAndUpdate(
+                { _id: context.user._id},
+                { $addToSet: { savedBooks: args}},
+                { new: true, runValidators: true}
+            )
+            return updatedUser;
+        };
+        throw new AuthenticationError('You need to be logged in!');
+    }
