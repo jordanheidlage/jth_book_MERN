@@ -3,17 +3,16 @@ const { User, Thought } = require('../models');
 const { signToken } = require('../utils/auth');
 
 const resolvers = {
-    Query: {
-        me: async (parent, args, context) => {
-            if (context.user) {
-              return User.findOne({ _id: context.user._id }).populate('thoughts');
-            }
-            throw new AuthenticationError('You need to be logged in!');
-          },
-    }
-}
+  Query: {
+    me: async (parent, args, context) => {
+      if (context.user) {
+        return User.findOne({ _id: context.user._id }).populate('savedLocations')
+      }
+      throw new AuthenticationError('You need to be logged in!');
+    },
+  },
 
-Mutation: {
+  Mutation: {
     addUser: async (parent, { username, email, password }) => {
       const user = await User.create({ username, email, password });
       const token = signToken(user);
@@ -37,13 +36,31 @@ Mutation: {
       return { token, user };
     },
     saveBook: async (parent, args, context) => {
-        if (context.user) {
-            const updatedUser = await User.findOneAndUpdate(
-                { _id: context.user._id},
-                { $addToSet: { savedBooks: args}},
-                { new: true, runValidators: true}
-            )
-            return updatedUser;
+      if (context.user) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $addToSet: { savedBooks: args } },
+          { new: true, runValidators: true }
+        );
+        return updatedUser;
         };
-        throw new AuthenticationError('You need to be logged in!');
+      throw new AuthenticationError('You need to be logged in!');
+    },
+    removeBook: async (parent, args, context) => {
+      if (context.user) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $pull: { savedBooks: args  } },
+          { new: true }
+        );
+        if (!updatedUser) {
+          return res.status(404).json({ message: "Couldn't find user with this id!" });
+        }
+        return updatedUser
+      }
+      throw new AuthenticationError('You need to be logged in!');
     }
+  },
+};
+
+module.exports = resolvers;
